@@ -1,0 +1,88 @@
+The Project aim to scrap web data from the Nigeria Center for Disease Control NCDC
+To help analyse COVID19 cases in Nigeria. Data was scrapped from https://covid19.ncdc.gov.ng/ on the 11/14/2020 at 2:55am.
+
+
+```{r}
+library(rvest)
+library(dplyr)
+link="https://covid19.ncdc.gov.ng/#!"
+page = read_html(link)
+Naija_Covid_data= page %>%html_table(fill = T)
+Naija_Covid_data
+length(Naija_Covid_data)
+summary(Naija_Covid_data)
+typeof(Naija_Covid_data)
+write.table(Naija_Covid_data, file = "Naijacovid_data_13_11_20.csv", sep = ",")
+```
+
+I Need to covert the data from List to a dataframe
+```{r}
+Naijacovid<-data.frame(Naija_Covid_data)
+head(Naijacovid)
+```
+I want to rename the column names
+```{r}
+colnames(Naijacovid)
+colnames(Naijacovid)<-c("States_Affected", "Confirmed_Cases", "Cases_On_Admission", "Discharged_cases", "No_of_Deaths")
+colnames(Naijacovid)
+```
+
+I want to get rid of the commas in the numbers using the Gsub function
+
+```{r}
+Naijacovid$Confirmed_Cases<-gsub(",", "", Naijacovid$Confirmed_Cases)
+Naijacovid$Cases_On_Admission<-gsub(",", "", Naijacovid$Cases_On_Admission)
+Naijacovid$Discharged_cases<-gsub(",", "", Naijacovid$Discharged_cases)
+head(Naijacovid)
+```
+checking for the data str
+```{r}
+str(Naija_Covid_data)
+```
+coverting character column 2,3,4 to intergers
+
+```{r}
+Naijacovid$Confirmed_Cases<-as.integer(Naijacovid$Confirmed_Cases)
+Naijacovid$Cases_On_Admission<-as.integer(Naijacovid$Cases_On_Admission)
+Naijacovid$Discharged_cases<-as.integer(Naijacovid$Discharged_cases)
+str(Naijacovid)
+```
+
+Next up, I want to create Additional columns for my Recovery Rate and  Death Rate
+
+```{r}
+Naijacovid$Recovery_rate<- (Naijacovid$Discharged_cases/Naijacovid$Confirmed_Cases)*100
+Naijacovid$Death_rate<-(Naijacovid$No_of_Deaths/Naijacovid$Confirmed_Cases)*100
+head(Naijacovid, 15)
+```
+
+Round up both recovery rate and death rate to 2 decimal places
+```{r}
+Naijacovid$Recovery_rate<- round(Naijacovid$Recovery_rate, 2)
+Naijacovid$Death_rate<- round(Naijacovid$Death_rate, 2)
+head(Naijacovid)
+```
+Check for missing data
+```{r}
+!complete.cases(Naijacovid)
+```
+
+Data is clean and Ready to roll.
+
+
+```{r}
+library(esquisse)
+library(ggplot2)
+```
+
+Plots
+
+```{r}
+ggplot(Naijacovid) +
+ aes(x = States_Affected, weight = Confirmed_Cases) +
+ geom_bar(fill = "#0c4c8a") +
+ labs(x = "States", y = "Total Number of Cases", title = "Total Confirmed Cases Vs States") +
+ theme_dark()
+```
+
+
